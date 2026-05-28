@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mines – Сапёр со ставками</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:system-ui,sans-serif;
+            background:linear-gradient(135deg,#0f0f1a 0%,#1a1a2e 50%,#16213e 100%);
+            min-height:100vh;display:flex;flex-direction:column;align-items:center;color:#fff
+        }
+        header{
+            background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);
+            padding:18px;width:100%;text-align:center;
+            border-bottom:1px solid rgba(255,255,255,0.1)
+        }
+        header h1{
+            font-size:1.8rem;background:linear-gradient(to right,#f59e0b,#ef4444,#8b5cf6);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent
+        }
+        nav{
+            background:rgba(0,0,0,0.3);padding:10px;width:100%;
+            display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap
+        }
+        nav button,nav span{
+            color:#fff;padding:8px 16px;background:rgba(255,255,255,0.1);
+            border-radius:20px;cursor:pointer;border:none;font-size:0.85rem;transition:0.2s
+        }
+        nav button:hover{background:rgba(255,255,255,0.2)}
+        .nav-coins{background:rgba(245,158,11,0.2)!important;color:#fbbf24!important;font-weight:bold}
+        .nav-admin{background:rgba(139,92,246,0.3)!important;color:#c4b5fd!important;font-weight:bold}
+        .nav-admin:hover{background:rgba(139,92,246,0.5)!important}
+        #mainContent{flex:1;width:100%;max-width:900px;padding:20px}
+        .game-container{display:flex;flex-wrap:wrap;justify-content:center;gap:20px}
+        .game-card{
+            background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);
+            border-radius:16px;padding:20px;width:260px;text-align:center;
+            border:1px solid rgba(255,255,255,0.12);transition:0.3s
+        }
+        .game-card:hover{transform:translateY(-5px);border-color:rgba(245,158,11,0.4)}
+        .game-card .icon{font-size:55px;margin-bottom:10px}
+        .game-card h3{margin-bottom:6px}
+        .game-card p{color:#94a3b8;font-size:0.8rem;margin-bottom:14px}
+        .game-card button{
+            background:linear-gradient(135deg,#f59e0b,#ef4444);
+            color:#fff;border:none;padding:10px 22px;border-radius:25px;
+            cursor:pointer;font-weight:600;transition:0.2s;font-size:0.9rem
+        }
+        .game-card button:hover{transform:scale(1.05)}
+        #minesweeperPage{display:none;text-align:center;max-width:550px;margin:0 auto}
+        .ms-panel{
+            background:rgba(0,0,0,0.35);border-radius:14px;padding:16px;margin-bottom:16px;
+            border:1px solid rgba(255,255,255,0.1)
+        }
+        .ms-settings{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center}
+        .ms-settings label{font-size:0.85rem;color:#cbd5e1}
+        .ms-settings select,.ms-settings input{
+            background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
+            border-radius:20px;padding:7px 14px;color:#fff;font-size:0.85rem;outline:none;text-align:center
+        }
+        .ms-settings input{width:90px}
+        .multiplier-display{font-size:1rem;margin:10px 0;color:#cbd5e1}
+        #msBoard{display:inline-grid;gap:3px;background:rgba(0,0,0,0.4);padding:10px;border-radius:10px;margin:10px auto}
+        .ms-cell{
+            width:55px;height:55px;background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.18);border-radius:8px;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;
+            font-weight:bold;font-size:1.1rem;transition:0.12s;user-select:none
+        }
+        .ms-cell:hover:not(.revealed){background:rgba(255,255,255,0.2);transform:scale(0.95)}
+        .ms-cell.revealed{background:rgba(0,0,0,0.4);border-color:rgba(255,255,255,0.05);cursor:default}
+        .ms-cell.mine-reveal{background:rgba(239,68,68,0.7);animation:explode 0.3s}
+        .ms-cell.coin-reveal{background:rgba(245,158,11,0.4);border-color:rgba(245,158,11,0.5)}
+        .ms-cell.cheat-mine{box-shadow:inset 0 0 15px rgba(239,68,68,0.8);border-color:rgba(239,68,68,0.9)}
+        @keyframes explode{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+        .btn{
+            display:inline-block;padding:10px 22px;border:none;border-radius:25px;
+            cursor:pointer;font-weight:600;margin:5px;transition:0.2s;font-size:0.9rem
+        }
+        .btn-primary{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff}
+        .btn-primary:hover{transform:scale(1.05)}
+        .btn-secondary{background:rgba(255,255,255,0.12);color:#fff}
+        .btn-success{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+        .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
+        #adminOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:199}
+        #adminPanel{
+            display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(15,15,26,0.98);border:2px solid #8b5cf6;
+            border-radius:20px;padding:25px;z-index:200;width:420px;max-width:90vw;backdrop-filter:blur(20px)
+        }
+        #adminPanel h3{color:#8b5cf6;margin-bottom:15px;font-size:1.2rem}
+        #adminPanel p{font-size:0.8rem;color:#94a3b8;margin-bottom:5px}
+        #adminPanel input{
+            width:100%;padding:10px 14px;background:rgba(255,255,255,0.1);
+            border:1px solid rgba(255,255,255,0.2);border-radius:20px;
+            color:#fff;outline:none;margin-bottom:10px;font-size:0.9rem
+        }
+        #adminPanel hr{border-color:rgba(255,255,255,0.1);margin:15px 0}
+        .cheat-status{padding:6px 16px;border-radius:20px;display:inline-block;font-weight:bold;font-size:0.9rem}
+        .cheat-on{background:#22c55e;color:#000}
+        .cheat-off{background:#ef4444;color:#fff}
+        #consoleOutput{
+            background:rgba(0,0,0,0.5);border-radius:10px;padding:10px;
+            max-height:120px;overflow-y:auto;font-family:monospace;
+            font-size:0.75rem;color:#22c55e;text-align:left;margin-top:10px
+        }
+        #consoleOutput div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+        #popupOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:299}
+        .result-popup{
+            display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(15,15,26,0.97);border:2px solid rgba(245,158,11,0.5);
+            border-radius:20px;padding:30px;text-align:center;z-index:300;
+            backdrop-filter:blur(20px);animation:popIn 0.3s
+        }
+        @keyframes popIn{from{transform:translate(-50%,-50%) scale(0.8);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+        .shop-section,.profile-section{
+            display:none;background:rgba(255,255,255,0.06);
+            border-radius:16px;padding:25px;border:1px solid rgba(255,255,255,0.1);
+            text-align:center;max-width:500px;margin:0 auto
+        }
+        .coins-big{
+            font-size:2.2rem;font-weight:bold;background:linear-gradient(to right,#f59e0b,#fbbf24);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:15px 0
+        }
+        footer{
+            background:rgba(0,0,0,0.4);text-align:center;padding:15px;
+            width:100%;color:#94a3b8;font-size:0.8rem;margin-top:auto
+        }
+    </style>
+</head>
+<body>
+
+<header><h1>💣 Mines – Сапёр со ставками</h1></header>
+
+<nav>
+    <button onclick="showPage('games')">🎯 Игры</button>
+    <button onclick="showPage('shop')">🛒 Магазин</button>
+    <button onclick="showPage('profile')">👤 Профиль</button>
+    <button class="nav-admin" onclick="toggleAdminPanel()">🛠️ Админ</button>
+    <span class="nav-coins">💰 <span id="navCoins">100</span></span>
+</nav>
+
+<div id="mainContent">
+    <div id="gamesPage" class="game-container">
+        <div class="game-card">
+            <div class="icon">💣</div>
+            <h3>Mines</h3>
+            <p>Выбирай мины, делай ставку, забирай выигрыш!</p>
+            <button onclick="openMines()">🎮 Играть</button>
+        </div>
+        <div class="game-card">
+            <div class="icon">🏗️</div>
+            <h3>Башня</h3>
+            <p>Стройте башню (в разработке)</p>
+            <button onclick="alert('Скоро!')">🔜 Скоро</button>
+        </div>
+    </div>
+
+    <div id="minesweeperPage">
+        <button class="btn btn-secondary" onclick="leaveGame()">← Назад к играм</button>
+        <div class="ms-panel">
+            <div class="ms-settings">
+                <label>💣 Мины:</label>
+                <select id="minesCount" onchange="updateSettings()">
+                    <option value="3">3</option><option value="6">6</option>
+                    <option value="9">9</option><option value="12">12</option>
+                    <option value="15">15</option><option value="24">24</option>
+                </select>
+                <label>💰 Ставка:</label>
+                <input type="number" id="betAmount" value="10" min="1" onchange="updateSettings()">
+                <button class="btn btn-primary" id="startGameBtn" onclick="startRound()">🎯 Играть</button>
+            </div>
+            <div class="multiplier-display" id="multiplierInfo"></div>
+        </div>
+        <div id="msBoard"><p style="color:#94a3b8;padding:40px;">Настройте параметры и нажмите "Играть"</p></div>
+        <div style="margin-top:12px;display:none" id="cashoutSection">
+            <div style="color:#fbbf24;margin-bottom:6px">Текущий множитель: <strong id="currentMultiplier">1.00x</strong></div>
+            <button class="btn btn-success" id="cashoutBtn" onclick="cashout()">💰 Забрать <span id="cashoutAmount">0</span> монет</button>
+        </div>
+    </div>
+
+    <div id="shopPage" class="shop-section">
+        <h2>🛒 Магазин</h2>
+        <div class="coins-big">💰 <span id="shopCoins">100</span></div>
+        <button class="btn btn-primary" onclick="addCoins(100)">🪙 +100 монет</button>
+        <div style="margin-top:20px">
+            <h3>🎁 Промокод</h3>
+            <input type="text" id="promoInput" placeholder="Введите промокод">
+            <button class="btn btn-primary" onclick="applyPromo()">Применить</button>
+            <p id="promoMessage" style="margin-top:8px"></p>
+        </div>
+    </div>
+
+    <div id="profilePage" class="profile-section">
+        <h2>👤 Профиль</h2>
+        <div class="coins-big">💰 <span id="profileCoins">100</span></div>
+        <p>📊 Побед в Mines: <span id="msWins">0</span></p>
+    </div>
+</div>
+
+<div id="adminOverlay" onclick="closeAdminPanel()"></div>
+<div id="adminPanel">
+    <h3>🛠️ Панель администратора</h3>
+    <p>Чит-режим (видимость мин):</p>
+    <span class="cheat-status cheat-off" id="cheatStatus">ВЫКЛ</span>
+    <button class="btn btn-primary" onclick="toggleCheat()" id="cheatToggleBtn" style="margin-left:10px">Включить cheat</button>
+    <hr>
+    <p>📋 Консоль (команды: cheat on, cheat off, /promo ИМЯ СУММА)</p>
+    <input type="text" id="consoleInput" placeholder="Введите команду...">
+    <button class="btn btn-success" onclick="runConsoleCommand()">▶ Выполнить</button>
+    <div id="consoleOutput"><div>📜 Готов к командам...</div></div>
+    <button class="btn btn-secondary" onclick="closeAdminPanel()" style="margin-top:15px">Закрыть</button>
+</div>
+
+<div id="popupOverlay"></div>
+<div class="result-popup" id="resultPopup">
+    <h2 id="resultTitle" style="font-size:1.6rem;margin-bottom:10px"></h2>
+    <p id="resultMessage" style="color:#cbd5e1;margin-bottom:15px"></p>
+    <button class="btn btn-primary" onclick="closeResult()">OK</button>
+</div>
+
+<footer><p>© 2024 Игровой портал | Кнопка Админ в меню сверху</p></footer>
+
+<script>
+// ==================== ДАННЫЕ ====================
+let coins = parseInt(localStorage.getItem('portalCoins')) || 100;
+let msWins = parseInt(localStorage.getItem('msWins')) || 0;
+let cheatMode = false;
+let promoCodes = JSON.parse(localStorage.getItem('promoCodes')) || {};
+
+const GRID_SIZE = 5;
+let minesCount = 3;
+let betAmount = 10;
+let gameActive = false;
+let board = [];
+let revealed = [];
+let coinsFound = 0;
+let totalCoins = 0;
+let roundOver = false;
+
+// Таблица множителей
+const multiplierTable = {
+    3: [1.07,1.22,1.40,1.62,1.89,2.22,2.63,3.15,3.82,4.70,5.87,7.47,9.71,12.94,17.79,25.41,38.11,60.97,106.69,213.38,533.45,2133.80],
+    6: [1.25,1.66,2.24,3.08,4.31,6.15,8.98,13.47,20.81,33.29,55.48,97.09,180.31,360.62,793.36,1983.40,5950.20,23800.80,166605.60],
+    9: [1.48,2.36,3.87,6.54,11.44,20.80,39.52,79.04,167.96,383.90,959.75,2687.30,8733.72,34934.88,192141.84,1921418.40],
+    12: [1.82,3.64,7.61,16.74,39.06,97.65,265.05,795.15,2703.51,10814.04,54070.20,378491.40,4920388.20],
+    15: [2.37,6.32,18.17,57.10,199.85,799.40,3797.15,22782.90,193654.65,3098474.40],
+    24: [23.75]
+};
+
+// ==================== НАВИГАЦИЯ ====================
+function showPage(page) {
+    document.getElementById('gamesPage').style.display = 'none';
+    document.getElementById('minesweeperPage').style.display = 'none';
+    document.getElementById('shopPage').style.display = 'none';
+    document.getElementById('profilePage').style.display = 'none';
+    
+    if(page==='games') document.getElementById('gamesPage').style.display = 'flex';
+    else if(page==='minesweeper'){ document.getElementById('minesweeperPage').style.display='block'; resetBoard(); updateSettings(); }
+    else if(page==='shop'){ document.getElementById('shopPage').style.display='block'; document.getElementById('shopCoins').textContent=coins; }
+    else if(page==='profile'){ document.getElementById('profilePage').style.display='block'; document.getElementById('profileCoins').textContent=coins; document.getElementById('msWins').textContent=msWins; }
+    updateNav();
+}
+
+function updateNav(){ document.getElementById('navCoins').textContent = coins; }
+function addCoins(amount){ coins+=amount; localStorage.setItem('portalCoins',coins); updateNav(); }
+
+function openMines(){ showPage('minesweeper'); }
+function leaveGame(){
+    if(gameActive && coinsFound>0 && !roundOver){
+        if(confirm('Прогресс потерян, ставка не вернётся. Выйти?')){ resetBoard(); showPage('games'); }
+    }else{ resetBoard(); showPage('games'); }
+}
+
+// ==================== ПРОМОКОДЫ ====================
+function applyPromo(){
+    const code = document.getElementById('promoInput').value.trim().toUpperCase();
+    const msg = document.getElementById('promoMessage');
+    if(promoCodes[code]){ addCoins(promoCodes[code]); msg.textContent='✅ +'+promoCodes[code]+' монет!'; msg.style.color='#22c55e'; return; }
+    const std = {'WELCOME100':100,'MINES50':50,'VIP200':200};
+    if(std[code]){ addCoins(std[code]); msg.textContent='✅ +'+std[code]+' монет!'; msg.style.color='#22c55e'; }
+    else{ msg.textContent='❌ Неверный промокод'; msg.style.color='#ef4444'; }
+}
+
+// ==================== АДМИН-ПАНЕЛЬ ====================
+function toggleAdminPanel(){
+    const p=document.getElementById('adminPanel'), o=document.getElementById('adminOverlay');
+    if(p.style.display==='block'){ p.style.display='none'; o.style.display='none'; }
+    else{ p.style.display='block'; o.style.display='block'; updateCheatUI(); document.getElementById('consoleInput').focus(); }
+}
+function closeAdminPanel(){
+    document.getElementById('adminPanel').style.display='none';
+    document.getElementById('adminOverlay').style.display='none';
+}
+function toggleCheat(){
+    cheatMode=!cheatMode; updateCheatUI();
+    if(gameActive) renderBoard();
+    logToConsole('🛠️ Cheat '+(cheatMode?'ON':'OFF'));
+}
+function updateCheatUI(){
+    const s=document.getElementById('cheatStatus'), b=document.getElementById('cheatToggleBtn');
+    if(cheatMode){ s.textContent='ВКЛ'; s.className='cheat-status cheat-on'; b.textContent='Выключить cheat'; }
+    else{ s.textContent='ВЫКЛ'; s.className='cheat-status cheat-off'; b.textContent='Включить cheat'; }
+}
+function logToConsole(msg){
+    const o=document.getElementById('consoleOutput');
+    o.innerHTML+='<div>'+msg+'</div>'; o.scrollTop=o.scrollHeight;
+}
+function runConsoleCommand(){
+    const input=document.getElementById('consoleInput').value.trim();
+    if(!input) return;
+    logToConsole('> '+input);
+    handleCommand(input);
+    document.getElementById('consoleInput').value='';
+}
+function handleCommand(input){
+    const parts=input.split(' '), cmd=parts[0].toLowerCase();
+    if(cmd==='/promo' && parts.length>=3){
+        const name=parts[1].toUpperCase(), amt=parseInt(parts[2]);
+        if(amt>0){ promoCodes[name]=amt; localStorage.setItem('promoCodes',JSON.stringify(promoCodes)); logToConsole('✅ Промокод '+name+' на '+amt+' монет создан!'); }
+        else logToConsole('❌ Сумма > 0');
+    }else if(cmd==='cheat' && parts.length>=2){
+        if(parts[1].toLowerCase()==='on'){ cheatMode=true; updateCheatUI(); if(gameActive) renderBoard(); logToConsole('🛠️ Cheat ON'); }
+        else if(parts[1].toLowerCase()==='off'){ cheatMode=false; updateCheatUI(); if(gameActive) renderBoard(); logToConsole('🛠️ Cheat OFF'); }
+        else logToConsole('❌ cheat on / cheat off');
+    }else if(cmd==='/help'){
+        logToConsole('cheat on — показать мины');
+        logToConsole('cheat off — скрыть мины');
+        logToConsole('/promo ИМЯ СУММА — создать промокод');
+    }else{ logToConsole('❌ Неизвестно. /help'); }
+}
+
+// ==================== ИГРА MINES ====================
+function updateSettings(){
+    minesCount=parseInt(document.getElementById('minesCount').value);
+    betAmount=parseInt(document.getElementById('betAmount').value)||10;
+    if(betAmount<1) betAmount=1;
+    totalCoins=GRID_SIZE*GRID_SIZE-minesCount;
+    const max=multiplierTable[minesCount].slice(-1)[0];
+    document.getElementById('multiplierInfo').innerHTML='Макс. множитель: <span style="color:#22c55e;font-weight:bold">'+max.toFixed(2)+'x</span> | Макс. выигрыш: <span style="color:#fbbf24">'+Math.floor(betAmount*max)+'</span> монет';
+}
+function resetBoard(){
+    gameActive=false; roundOver=false; coinsFound=0; board=[];
+    revealed=Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill(false));
+    document.getElementById('startGameBtn').disabled=false;
+    document.getElementById('cashoutSection').style.display='none';
+    document.getElementById('msBoard').innerHTML='<p style="color:#94a3b8;padding:40px">Настройте параметры и нажмите "Играть"</p>';
+    updateSettings();
+}
+function startRound(){
+    if(coins<betAmount){ showResult('❌ Недостаточно монет','Пополните баланс или уменьшите ставку.'); return; }
+    coins-=betAmount; localStorage.setItem('portalCoins',coins); updateNav();
+    gameActive=true; roundOver=false; coinsFound=0;
+    totalCoins=GRID_SIZE*GRID_SIZE-minesCount;
+    revealed=Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill(false));
+    board=Array(GRID_SIZE).fill(null).map(()=>Array(GRID_SIZE).fill('coin'));
+    let placed=0;
+    while(placed<minesCount){
+        const r=Math.floor(Math.random()*GRID_SIZE), c=Math.floor(Math.random()*GRID_SIZE);
+        if(board[r][c]==='coin'){ board[r][c]='mine'; placed++; }
+    }
+    document.getElementById('startGameBtn').disabled=true;
+    document.getElementById('cashoutSection').style.display='block';
+    updateCashoutDisplay(); renderBoard();
+}
+function renderBoard(){
+    const el=document.getElementById('msBoard');
+    el.style.gridTemplateColumns='repeat('+GRID_SIZE+',55px)'; el.innerHTML='';
+    for(let r=0;r<GRID_SIZE;r++){
+        for(let c=0;c<GRID_SIZE;c++){
+            const cell=document.createElement('div'); cell.className='ms-cell';
+            if(revealed[r][c]){
+                cell.classList.add('revealed');
+                if(board[r][c]==='mine'){ cell.classList.add('mine-reveal'); cell.textContent='💣'; }
+                else{ cell.classList.add('coin-reveal'); cell.textContent='💰'; }
+            }else if(cheatMode && board[r][c]==='mine'){ cell.classList.add('cheat-mine'); cell.textContent='💣'; }
+            if(gameActive && !roundOver && !revealed[r][c]) cell.addEventListener('click',function(){ revealCell(r,c); });
+            el.appendChild(cell);
+        }
+    }
+}
+function revealCell(r,c){
+    if(!gameActive||roundOver||revealed[r][c]) return;
+    revealed[r][c]=true;
+    if(board[r][c]==='mine'){
+        roundOver=true; gameActive=false;
+        for(let rr=0;rr<GRID_SIZE;rr++) for(let cc=0;cc<GRID_SIZE;cc++) if(board[rr][cc]==='mine') revealed[rr][cc]=true;
+        renderBoard(); setTimeout(resetBoard,1500);
+        document.getElementById('startGameBtn').disabled=false;
+        document.getElementById('cashoutSection').style.display='none';
+        showResult('💥 Мина!','Вы потеряли ставку. Попробуйте снова!'); return;
+    }
+    coinsFound++; updateCashoutDisplay(); renderBoard();
+    if(coinsFound>=totalCoins){
+        roundOver=true; gameActive=false;
+        const mult=multiplierTable[minesCount][coinsFound-1], win=Math.floor(betAmount*mult);
+        addCoins(win); msWins++; localStorage.setItem('msWins',msWins);
+        setTimeout(resetBoard,1500);
+        document.getElementById('startGameBtn').disabled=false;
+        document.getElementById('cashoutSection').style.display='none';
+        showResult('🎉 Все монетки!','Вы выиграли '+win+' монет! ('+mult.toFixed(2)+'x)');
+    }
+}
+function updateCashoutDisplay(){
+    if(coinsFound===0){ document.getElementById('currentMultiplier').textContent='1.00x'; document.getElementById('cashoutAmount').textContent='0'; document.getElementById('cashoutBtn').disabled=true; return; }
+    const mult=multiplierTable[minesCount][coinsFound-1], val=Math.floor(betAmount*mult);
+    document.getElementById('currentMultiplier').textContent=mult.toFixed(2)+'x';
+    document.getElementById('cashoutAmount').textContent=val;
+    document.getElementById('cashoutBtn').disabled=false;
+}
+function cashout(){
+    if(!gameActive||roundOver||coinsFound===0) return;
+    roundOver=true; gameActive=false;
+    const mult=multiplierTable[minesCount][coinsFound-1], win=Math.floor(betAmount*mult);
+    addCoins(win); msWins++; localStorage.setItem('msWins',msWins);
+    for(let r=0;r<GRID_SIZE;r++) for(let c=0;c<GRID_SIZE;c++) if(board[r][c]==='coin') revealed[r][c]=true;
+    renderBoard(); setTimeout(resetBoard,1500);
+    document.getElementById('startGameBtn').disabled=false;
+    document.getElementById('cashoutSection').style.display='none';
+    showResult('💰 Забрано!','Вы забрали '+win+' монет ('+mult.toFixed(2)+'x)');
+}
+
+// ==================== ПОП-АП ====================
+function showResult(t,m){
+    document.getElementById('popupOverlay').style.display='block';
+    document.getElementById('resultPopup').style.display='block';
+    document.getElementById('resultTitle').textContent=t;
+    document.getElementById('resultMessage').textContent=m;
+}
+function closeResult(){
+    document.getElementById('popupOverlay').style.display='none';
+    document.getElementById('resultPopup').style.display='none';
+    updateNav();
+}
+
+// ==================== КЛАВИША ~ ====================
+document.addEventListener('keydown',function(e){
+    if(e.key==='`'||e.key==='~'){
+        e.preventDefault(); toggleAdminPanel();
+    }
+    if(e.key==='Escape'){
+        closeAdminPanel(); closeResult();
+    }
+});
+
+// ==================== ENTER В КОНСОЛИ ====================
+document.getElementById('consoleInput').addEventListener('keypress',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); runConsoleCommand(); }
+});
+
+// СТАРТ
+updateNav(); showPage('games');
+</script>
+</body>
+</html>
